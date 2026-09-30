@@ -1,4 +1,4 @@
-from app.pii import scrub_text
+from app.pii import scrub_text, summarize_text
 
 
 def test_scrub_email() -> None:
@@ -20,3 +20,41 @@ def test_scrub_common_vietnamese_phone_formats() -> None:
         out = scrub_text(f"Contact: {phone_number}")
         assert phone_number not in out
         assert "REDACTED_PHONE_VN" in out
+
+
+def test_scrub_cccd() -> None:
+    cccd_numbers = (
+        "012345678901",
+        "098765432109",
+    )
+    for cccd in cccd_numbers:
+        out = scrub_text(f"CCCD: {cccd}")
+        assert cccd not in out
+        assert "REDACTED_CCCD" in out
+
+
+def test_scrub_credit_card() -> None:
+    cards = (
+        "4111111111111111",
+        "4111-1111-1111-1111",
+        "4111 1111 1111 1111",
+    )
+    for card in cards:
+        out = scrub_text(f"Card: {card}")
+        assert card not in out
+        assert "REDACTED_CREDIT_CARD" in out
+
+
+def test_scrub_passport() -> None:
+    out = scrub_text("Passport: B1234567")
+    assert "B1234567" not in out
+    assert "REDACTED_PASSPORT" in out
+
+
+def test_summarize_text_truncates_and_scrubs() -> None:
+    long_msg = "Contact student@example.com " + "x" * 100
+    result = summarize_text(long_msg, max_len=50)
+    assert "student@" not in result
+    assert len(result) <= 53  # 50 + "..."
+    assert result.endswith("...")
+
